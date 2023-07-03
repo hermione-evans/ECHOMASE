@@ -1,0 +1,106 @@
+{
+  "width": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.analytical",
+    "__name__": "LogUniform",
+    "kwargs": {
+      "minimum": 0.00011492701528727212,
+      "maximum": 0.0022967952917631353,
+      "name": "fw",
+      "latex_label": "fw",
+      "unit": null,
+      "boundary": null
+    }
+  },
+  "amplitude": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.analytical",
+    "__name__": "Uniform",
+    "kwargs": {
+      "minimum": 1.4393585123011108,
+      "maximum": 1439.3585123011107,
+      "name": "amplitude",
+      "latex_label": "amplitude",
+      "unit": null,
+      "boundary": null
+    }
+  },
+  "phase": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.analytical",
+    "__name__": "Uniform",
+    "kwargs": {
+      "minimum": 0,
+      "maximum": 1,
+      "name": "phase",
+      "latex_label": "$\\phi$",
+      "unit": null,
+      "boundary": null
+    }
+  },
+  "spacing": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.analytical",
+    "__name__": "Uniform",
+    "kwargs": {
+      "minimum": 0.0005741988229407838,
+      "maximum": 0.0022967952917631353,
+      "name": "spacing",
+      "latex_label": "spacing",
+      "unit": null,
+      "boundary": null
+    }
+  },
+  "z": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.base",
+    "__name__": "Constraint",
+    "kwargs": {
+      "minimum": 0,
+      "maximum": 0.08443334349422939,
+      "name": null,
+      "latex_label": null,
+      "unit": null
+    }
+  },
+  "fmin": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.analytical",
+    "__name__": "Uniform",
+    "kwargs": {
+      "minimum": 0,
+      "maximum": 0.08443334349422939,
+      "name": "fmin",
+      "latex_label": "fmin",
+      "unit": null,
+      "boundary": null
+    }
+  },
+  "fmax": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.analytical",
+    "__name__": "Uniform",
+    "kwargs": {
+      "minimum": 0,
+      "maximum": 0.08443334349422939,
+      "name": "fmax",
+      "latex_label": "fmax",
+      "unit": null,
+      "boundary": null
+    }
+  },
+  "duration": {
+    "__prior__": true,
+    "__module__": "bilby.core.prior.analytical",
+    "__name__": "DeltaFunction",
+    "kwargs": {
+      "peak": 8701.17437140776,
+      "name": null,
+      "latex_label": null,
+      "unit": null
+    }
+  },
+  "__prior_dict__": true,
+  "__module__": "bilby.core.prior.dict",
+  "__name__": "PriorDict"
+}
