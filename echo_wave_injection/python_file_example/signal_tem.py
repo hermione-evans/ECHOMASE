@@ -7,33 +7,35 @@ from glob import glob
 from bilby.core.prior import PriorDict
 import csv
 import os
-
-
 import sys
 sys.path.append("..")
 from burstevidence_newcomb import burstevidence as burstevidence_old
 from burstevidence_newcomb import burstevidence_qnm as burstevidence
 from comb_models_version3 import qnmcombmodel_cut as combmodel
 
+
 chi = 0.69
 f_RD = (1.5251-1.1568*(1-chi)**0.129)/(2*np.pi)
 R_bar = 0.00547/(1+1/np.sqrt(1-chi**2))
-
 fmin = 0
 fmax = f_RD
+# These 5 lines aims to set parameters about echo model.
 
 # tem part
 start = tem
 end = tem
 likelihood_index=tem
 index = tem
-# tem part end 
+# start&end tem is the number of noise data we use. In the paper, we use 100 noise data for each duration.
+# And we use multiprocessing to run 100 noise data at the same time. (See the file: generate_python_files.py)
+# likelihood_index is the index of likelihood we use. 0 means the new likelihood, 1 means the old likelihood.
+# index is the index of injected echo model file. We have 30 injected echo model files. (See the folder: echo_waves)
 
 noise0 = np.load('../noise100_500second.npy')
-length0 = int(500*4096)
+length0 = int(500*4096) # 100*length0 is the length of noise data we generate.
 file_list = glob('../echo_waves/*.dat')
 file_list.sort()
-file_list = file_list+file_list[18:24]
+file_list = file_list+file_list[18:24] # Add noise data to the end of the file_list. We set inject amplitude to 0 to get noise data.
 amplitude_array = np.concatenate((np.linspace(160,160,6),np.linspace(57,57,6),np.linspace(29,29,6),np.linspace(34,34,6),np.linspace(0,0,6)))
 echo_number_list = []
 for file in file_list:
@@ -44,12 +46,11 @@ for file in file_list:
     name_list.append(file[file.find('w1'):file.find('.dat')])
 name_list = np.array(name_list)
 likelihoodlist = ['newlikelihood','oldlikelihood']
-
 likelihood_string = likelihoodlist[likelihood_index]
-
 file = file_list[index]
 amplitude_inject = amplitude_array[index]
-necho = echo_number_list[index]
+necho = echo_number_list[index] # The number of echo waves in the injected signal. It is contained in the file name.
+
 if necho >=100:
     npoints = 2000
 else:
@@ -57,7 +58,7 @@ else:
 nact = 10 
 maxmcmc = 10000
 walks = 100
-
+# These 7 lines aims to set sampling parameters.
 
 if amplitude_inject !=0:
     name = name_list[index]
@@ -85,20 +86,23 @@ if(whether_print_header == 0):
         f_csv = csv.writer(f)
         f_csv.writerow(headers)
     whether_print_header = 1
+# These lines are used to generate the header of the csv file and the folder to save the data.
+
         
 inject_data = np.genfromtxt(file,delimiter="\t",dtype=np.complex128)
-
 omega = np.real(inject_data[0::,0])
 frequency = omega/(2*np.pi)
 df = np.diff(frequency)[0]
 duration = 1/df
 dt = duration/len(omega)
 frequency = frequency[0:len(frequency)//2]
-
+# These lines are used to read the injected echo model file and get the frequency array.
+# The model files contains both the postive and negative frequencies. We only deal with the positive frequencies.
 
 inject_strain_fre = inject_data[0::,1]
 inject_strain_fre = (inject_strain_fre + np.conjugate(inject_strain_fre[::-1]))/2
 inject_strain_fre = inject_strain_fre[0:len(frequency)]
+# Here  we assume the detector response for positive and negative frequencies are the same. See our paper Sec 4 for more details.
 
 length = len(inject_strain_fre)*2
 
@@ -113,19 +117,19 @@ for i in np.arange(start,end):
     fs = 1/dt
     psd_window = np.blackman(NFFT)
     NOVL = int(NFFT/2)
-
+    # These lines are used to set the psd parameter of the noise data.
+    
     Pxx_strain, freqs = mlab.psd(noisep, Fs = fs, NFFT = NFFT,window = psd_window,noverlap = NOVL)
     psd_strain = interp1d(freqs, Pxx_strain)
     noisefre = dt * np.fft.fft(noise)[0:len(frequency)]
     strainfre = inject_strain_fre * amplitude_inject + noisefre
+    # These lines are used to generate the PSD of the noise data and inject signal data.
     
     def frange(parameters):
-        
         converted_parameters = parameters.copy()
         converted_parameters['z'] = parameters['fmax'] - parameters['fmin'] - parameters['spacing']*10
         return converted_parameters
     priors=PriorDict(conversion_function=frange)
-
     priors['width']=bilby.core.prior.LogUniform(1/duration, R_bar, 'fw')
     priors['amplitude']=bilby.core.prior.Uniform(np.mean(np.abs(noisefre))/100, np.mean(np.abs(noisefre))*10, 'amplitude')
     priors['phase']=bilby.core.prior.Uniform(0, 1, 'phase')
@@ -134,6 +138,7 @@ for i in np.arange(start,end):
     priors['fmin'] = bilby.core.prior.Uniform(0, f_RD, 'fmin')
     priors['fmax'] = bilby.core.prior.Uniform(0, f_RD, 'fmax')
     priors['duration'] = duration
+    # These lines are the priors of the parameters. See Table 2 in our paper for more details.
     
     # # dry run test. Just to test the correctness of the code
     # npoints = 10
@@ -149,6 +154,7 @@ for i in np.arange(start,end):
         likelihood=burstevidence_old(x=frequency,y=np.abs(strainfre),sn=psd_strain(frequency),function = combmodel , df = df )#remember to set df
     if os.path.exists(outdir+'/'+label+'_result.json' ):
         result = bilby.result.read_in_result(outdir=outdir, label=label)
+    # If the result file exists, we read the result file. Otherwise, we run the sampler.
     else:
         result = bilby.run_sampler(likelihood=likelihood, priors=priors, sampler='dynesty', npoints=npoints, nact=nact, maxmcmc=maxmcmc, walks=walks, outdir=outdir, label=label)            
     # result.plot_corner(filename=outdir+'/'+label+'_corner.png')
@@ -172,12 +178,12 @@ for i in np.arange(start,end):
     posterior_params_g=dict()
     posterior_params_g = result.posterior.loc[[result.posterior.idxmax()['log_likelihood']]].to_dict(orient ='records')[0]
 
-############################################################  csv data end  ##############################################
+
     fmin_m=posterior_params_m['fmin']
     fmax_m=posterior_params_m['fmax']
     fmin_g=posterior_params_g['fmin']
     fmax_g=posterior_params_g['fmax']
-############################################################  csv data end  ##############################################
+
     frequencye_m= frequency[int(fmin_m/df):int(fmax_m/df+2)]
     frequencye_g= frequency[int(fmin_g/df):int(fmax_g/df+2)]
 
@@ -185,11 +191,13 @@ for i in np.arange(start,end):
     rho_opt_signal_g = np.sqrt(4*df * np.sum(hi_g0**2/psd_strain(frequencye_g)))
     hi_g = combmodel(frequencye_g, ** posterior_params_g)[0]*np.exp(1j*combmodel(frequencye_g, ** posterior_params_g)[1])
     ρoptcomb_g = np.sqrt(4*df * np.sum(np.abs(hi_g)**2/psd_strain(frequencye_g)))
-                        
+    # These lines are used to calculate the SNR of the injected signal and the SNR of the best-fit comb.
+#######################################################  csv data end  ##############################################                        
     strainfreN = strainfre/psd_strain(frequency)
     noisefreN = noisefre/psd_strain(frequency)   
     
-    # we do not draw these figs in slurm run on supercomputer
+    # We do not draw these figs in slurm run on supercomputer
+    # This part is reproduced in SNR_result_generate.py
     # axins_xmin1 = 106
     # axins_xmax1 = 106.5
     # axins_ymax1 = 4

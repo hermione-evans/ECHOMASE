@@ -6,13 +6,13 @@ import bilby
 from sklearn.cluster import MiniBatchKMeans
 from glob import glob
 
-duration_array_str = glob("*NewPhase*/*.dat")
+duration_array_str = glob("echo_waves/*.dat")
 duration_array_str.sort()
 for i in range(len(duration_array_str)):
     duration_array_str[i] = duration_array_str[i].split("/")[1].split("N")[1].split('.')[0]
 duration_array_str = list(dict.fromkeys(duration_array_str))
 
-duration_array = glob("*NewPhase*/*.dat")
+duration_array = glob("echo_waves/*.dat")
 duration_array.sort()
 for i in range(len(duration_array)):
     duration_array[i] = int(duration_array[i].split("/")[1].split("N")[1].split('.')[0])
@@ -20,7 +20,7 @@ duration_array = list(dict.fromkeys(duration_array))
 duration_array.sort()
 duration_array = np.array(duration_array)
 
-name_array = glob("*NewPhase*/*.dat")
+name_array = glob("echo_waves/*.dat")
 name_array.sort()
 for i in range(len(name_array)):
     name_array[i] = name_array[i].split("/")[1].split("N")[0]
@@ -52,14 +52,25 @@ for file_array_new_2,file_array_old_2,name in zip(file_array_new,file_array_old,
     posterior_array_allplus_old = pd.concat(posterior_array_old,ignore_index=True)
     priors = bilby.result.read_in_result(file_array_new_2[0]).priors
 
-    priors.to_json(outdir=result.outdir.replace('/newlikelihood',''),label=result.label.replace('i0_SNR','_Kmeans'))
+    outdir = file_array_new_2[0].split("/")[0]
     
-    posterior_new = pd.DataFrame(columns=['width', 'amplitude', 'phase', 'spacing', 'fmin', 'fmax'])
-    posterior_old = pd.DataFrame(columns=['width', 'amplitude', 'phase', 'spacing', 'fmin', 'fmax'])
+    priors.to_json(outdir=outdir,label=result.label.replace('i0_SNR','_Kmeans'))
     
-    for keys in ['width', 'amplitude', 'phase', 'spacing', 'fmin', 'fmax']:
-        posterior_new[keys] = MiniBatchKMeans(n_clusters=10000).fit(posterior_array_allplus_new[keys].values.reshape(-1, 1)).cluster_centers_.reshape(-1)
-        posterior_old[keys] = MiniBatchKMeans(n_clusters=10000).fit(posterior_array_allplus_old[keys].values.reshape(-1, 1)).cluster_centers_.reshape(-1)
-    posterior_new.to_json(result.outdir.replace('/newlikelihood','')+'/'+result.label.replace('i0_SNR','_Kmeans.json'))
-    posterior_old.to_json(result.outdir.replace('/newlikelihood','')+'/'+result.label.replace('i0_SNR','_Kmeans.json').replace('newlikelihood','oldlikelihood'))
-        
+    # posterior_new = pd.DataFrame(columns=['width', 'amplitude', 'phase', 'spacing', 'fmin', 'fmax'])
+    # posterior_old = pd.DataFrame(columns=['width', 'amplitude', 'phase', 'spacing', 'fmin', 'fmax'])
+    
+    # for keys in ['width', 'amplitude', 'phase', 'spacing', 'fmin', 'fmax']:
+    #     posterior_new[keys] = MiniBatchKMeans(n_clusters=10000).fit(posterior_array_allplus_new[keys].values.reshape(-1, 1)).cluster_centers_.reshape(-1)
+    #     posterior_old[keys] = MiniBatchKMeans(n_clusters=10000).fit(posterior_array_allplus_old[keys].values.reshape(-1, 1)).cluster_centers_.reshape(-1)
+    # posterior_new.to_json(result.outdir.replace('/newlikelihood','')+'/'+result.label.replace('i0_SNR','_Kmeans.json'))
+    # posterior_old.to_json(result.outdir.replace('/newlikelihood','')+'/'+result.label.replace('i0_SNR','_Kmeans.json').replace('newlikelihood','oldlikelihood'))
+    
+    posterior_new = pd.read_json(outdir+'/'+result.label.replace('i0_SNR','_Kmeans.json'))
+    posterior_old = pd.read_json(outdir+'/'+result.label.replace('i0_SNR','_Kmeans.json').replace('newlikelihood','oldlikelihood'))
+    
+    keys = 'SNR'
+    posterior_new[keys] = MiniBatchKMeans(n_clusters=10000).fit(posterior_array_allplus_new[keys].values.reshape(-1, 1)).cluster_centers_.reshape(-1)
+    posterior_old[keys] = MiniBatchKMeans(n_clusters=10000).fit(posterior_array_allplus_old[keys].values.reshape(-1, 1)).cluster_centers_.reshape(-1)
+    posterior_new.to_json(outdir+'/'+result.label.replace('i0_SNR','_Kmeans.json'))
+    posterior_old.to_json(outdir+'/'+result.label.replace('i0_SNR','_Kmeans.json').replace('newlikelihood','oldlikelihood'))
+    

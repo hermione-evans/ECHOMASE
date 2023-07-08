@@ -10,80 +10,73 @@ import sys
 sys.path.append("..")
 from burstevidence_newcomb import burstevidence as burstevidence_old
 from burstevidence_newcomb import burstevidence_qnm as burstevidence
-from comb_models_version2 import qnmcombmodel_cut as combmodel
+from comb_models_version3 import qnmcombmodel_cut as combmodel
+
 
 start = tem
 end = tem 
-# tem is the number of noise data we use. 
-# In the paper, we use 100 noise data for each duration.
-# And we use multiprocessing to run 100 noise data at the same time. (See the file: generate_python_files.py)
-
-
-
 phase_injected = 1.26
-spacing_injected = 5.83
-for duration in [1,2,3,4,8,12,24,52]:    
-    samplingrate = 4096 
+duration = 2
+
+
+for nlive_points in [2000,1000]:
+    spacing_injected = 50
+    samplingrate = 4096 *2
+    # Here the sampling rate is doubled to borden the frequency range
     dt = 1/samplingrate # time resolution in unit of second
     df = 1/duration
     length = int(duration/dt)
-    length0 = int(500/dt) # 100*length0 is the length of noise data we generate.
+    length0 = int(500/dt/2)
 
     #     noise = np.random.normal(0, 1,100*length0)
     #     np.save('noise100_500second',noise)
-    # These 2 lines aim to generate noise.
+    # These 2 lines aim to generate noise
     noise0 = np.load('../noise100_500second.npy')
+
 
     NFFT = int(0.5 / dt) # the segment length is 0.5s
     fs = int(1/ dt)
     psd_window = np.blackman(NFFT)
     NOVL = int(NFFT/2)
-    # These 4 lines are PSD parameters.
-    
+
     fmin = 50
-    fmax = 339
-    # fmax = 339 related to N=49.  While fmax=110 means N=10 (with outdir of "*_n10*")
+    fmax = 50+49.5*spacing_injected
+
 
     inject_params=dict()
     inject_params['width']=1/4
+
     inject_params['phase'] = phase_injected
     inject_params['spacing'] = spacing_injected
     inject_params['duration'] = duration
-    # These 5 lines are the parameters of the injected signal.
-    
-    def phase_spacing(parameters):
-        converted_parameters = parameters.copy()
-        converted_parameters['z'] = parameters['spacing'] - parameters['phase']
-        return converted_parameters
-        # These function is used to convert the parameters of the injected signal. Spacing should be larger than phase.
-    priors=PriorDict(conversion_function=phase_spacing)
+
+
+    priors=PriorDict()
     priors['width']=bilby.core.prior.LogUniform(1/duration, 2, 'fw')
-    # for duration > 4 ,we use priors['width']=bilby.core.prior.LogUniform(1/duration, 0.5, 'fw')
+
     priors['amplitude']=bilby.core.prior.Uniform(0, 10, 'amplitude')
-    priors['phase']=bilby.core.prior.Uniform(0, 10, 'phase')
-    priors['spacing']=bilby.core.prior.Uniform(1, 10, 'spacing')
-    priors['z'] = bilby.core.prior.Constraint(minimum=0, maximum=10)
+    priors['phase']=bilby.core.prior.Uniform(0, 1,'phase')
+    priors['spacing']=bilby.core.prior.Uniform(spacing_injected*1/5.83, spacing_injected*10/5.83, 'spacing')
+
     priors['fmin'] = fmin
     priors['fmax'] = fmax
     priors['duration'] = duration
-    # These lines are the priors of the parameters.
 
-    npoints = 1000
+    npoints = nlive_points
     nact = 10 
     maxmcmc = 10000
     walks = 100
-    # These 4 lines are the parameters of the sampler.
 
-    outdirtemp = '../npoints=1000_duration=%d'%duration+"_4parameter_HWP"
-    # or outdirtemp = '../npoints=1000_duration=%d_n10'%duration+"_4parameter_HWP"
+    outdirtemp = '../npoints=%d_qfactor=%d_priorscaled_Tfactor100'%(npoints,4*spacing_injected)+"_4parameter_HWP_new"
 
-    for echoamplitude in [0.077,0]:
-        # we tune this echoamplitude to get a suitable SNR
+    for echoamplitude in [0.077/np.sqrt(2)]:
         amplitude_injected = echoamplitude
         inject_params['amplitude'] = amplitude_injected
 
-        outdir = outdirtemp+'/oldlikelihood' # or '/newlikelihood'
-        label0 = '4parameter_echoamplitude=%.3f'% echoamplitude+'_oldlikelihood' # or '/newlikelihood'
+        outdir = outdirtemp+'/newlikelihood'
+        # outdir = outdirtemp+'/oldlikelihood'
+        label0 = '4parameter_echoamplitude=%.3f'% echoamplitude+'_newlikelihood'
+        # label0 = '4parameter_echoamplitude=%.3f'% echoamplitude+'_oldlikelihood'
         whether_print_header = 0
         if(whether_print_header == 0):
             headers = ['i',  'logB', 'maxloglikelihood','SNR_comb_signal','SNR_comb_median', 'SNR_comb_global', 'run_time', 'duration',
@@ -100,29 +93,29 @@ for duration in [1,2,3,4,8,12,24,52]:
                 f_csv = csv.writer(f)
                 f_csv.writerow(headers)
             whether_print_header = 1
-        # These lines are used to generate the header of the csv file and the folder to save the data.
+                
                 
         for i in np.arange(start,end,1):
 
             noisep = noise0[i*length0:(i+1)*length0]
-            noise = noisep[0:length] # cut the noise data to the length we need.
+            noise = noisep[0:length]
             label = label0+'i'+str(i)
             Pxx_strain, freqs = mlab.psd(noisep, Fs = fs, NFFT = NFFT,window = psd_window,noverlap = NOVL)
             psd_strain = interp1d(freqs, Pxx_strain)
+            
             frequency = np.arange(0,int(freqs.max()),df)
-            # These lines are used to generate the PSD of the noise data and frequency bins.
+
             
             noisefre = dt * np.fft.fft(noise)[0:len(frequency)]
             strainfre = noisefre + combmodel(frequency,**inject_params)[0] * np.exp(1j*combmodel(frequency,**inject_params)[1])
-            # Inject the signal into the noise data.
-            likelihood=burstevidence_old(x=frequency,y=np.abs(strainfre),
+            likelihood=burstevidence(x=frequency,y=np.abs(strainfre),angle = np.angle(strainfre),
                                         sn=psd_strain(frequency),function = combmodel , df = df )
-            # for newlikelihood, we use these code:
-            # likelihood=burstevidence(x=frequency,y=np.abs(strainfre),angle = np.angle(strainfre),
+            # likelihood=burstevidence_old(x=frequency,y=np.abs(strainfre),
             #                             sn=psd_strain(frequency),function = combmodel , df = df )
+
+
             result = bilby.run_sampler(
                 likelihood=likelihood, priors=priors, sampler='dynesty', npoints=npoints, nact=nact, maxmcmc=maxmcmc, walks=walks, outdir=outdir, label=label,injection_parameters=inject_params)            
-            # These lines are used to run MCMC
             result.plot_corner(filename=outdir+'/'+label+'_corner.png')
             result.save_posterior_samples(filename=outdir+'/'+label+'_samples.dat')
 
@@ -149,19 +142,24 @@ for duration in [1,2,3,4,8,12,24,52]:
 
             hi = combmodel(frequencye, ** inject_params)[0]*np.exp(1j*combmodel(frequencye, ** inject_params)[1])
             rho_opt_signal = np.sqrt(4*df * np.sum(np.abs(hi)**2/psd_strain(frequencye)))
+            # rho_opt_signal = 0
             hi_m = combmodel(frequencye, ** posterior_params_m)[0]*np.exp(1j*combmodel(frequencye, ** posterior_params_m)[1])
             ρoptcomb_m = np.sqrt(4*df * np.sum(np.abs(hi_m)**2/psd_strain(frequencye)))
             hi_g = combmodel(frequencye, ** posterior_params_g)[0]*np.exp(1j*combmodel(frequencye, ** posterior_params_g)[1])
             ρoptcomb_g = np.sqrt(4*df * np.sum(np.abs(hi_g)**2/psd_strain(frequencye)))
-            # These lines are used to calculate the SNR of the injected signal and the SNR of the best-fit comb.
+            
                                 
-            # The following lines are used to plot the figure.                    
             strainfreN = strainfre/psd_strain(frequency)
             noisefreN = noisefre/psd_strain(frequency)   
             
-            axins_xmin1 = 106
-            axins_xmax1 = 106.5
+            axins_xmin1 = 101
+            axins_xmax1 = 101.5
             axins_ymax1 = 4
+
+            # axins_xmin2 = 232
+            # axins_xmax2 = 233
+            # axins_ymax2 = 2
+
 
             fig = plt.figure(figsize=(15,10), constrained_layout=True)
             ## Here we add constrained_layout=True to avoid the overlapping of 2 subplots
@@ -176,14 +174,28 @@ for duration in [1,2,3,4,8,12,24,52]:
             ax1.axis([fmin, fmax, 0, 7])
             ax1.set_ylabel(''),ax1.set_xlabel('f (Hz)',fontsize=15)
             ax1.tick_params(labelsize =15)
+            ## Here we change all "plt" into "ax1" for the convenience of add inplot 
 
             axins1 = ax1.inset_axes((0.05, 0.7, 0.2, 0.25))
+            #axins1.plot(frequency, np.abs(strainfreN)*np.sqrt(psd_strainLH_list*(4*df)), c='orange', label='normalized abs(dH/sH+dL/sL)')
+            #axins1.plot(frequency, np.abs(noisefreN)*np.sqrt(psd_strainLH_list*(4*df)), c='aquamarine',alpha=0.98,label='normalized noise data')
             axins1.plot(frequencye,np.abs(hi)*np.sqrt((4*df)/psd_strain(frequencye)) , c='red', alpha=0.8, label='normalized injected signal')        
             axins1.plot(frequencye,np.abs(hi_m)*np.sqrt((4*df)/psd_strain(frequencye)),c='blue',alpha=0.8, label='normalized best-fit comb')
             axins1.set_xticks(np.linspace(axins_xmin1,axins_xmax1,6))
             axins1.tick_params(labelsize =13)
             axins1.set_xticklabels(['%.1f'%x for x in np.linspace(axins_xmin1,axins_xmax1,6)],fontsize=12)
             axins1.axis([axins_xmin1, axins_xmax1, 0, axins_ymax1])
+
+            # axins2 = ax1.inset_axes((0.45, 0.7, 0.2, 0.25))
+            # #axins2.plot(frequency, np.abs(strainfreN)*np.sqrt(psd_strainLH_list*(4*df)), c='orange', label='normalized abs(dH/sH+dL/sL)')
+            # #axins2.plot(frequency, np.abs(noisefreN)*np.sqrt(psd_strainLH_list*(4*df)), c='aquamarine',alpha=0.98,label='normalized noise data')
+            # axins2.plot(frequencye,hi*np.sqrt((4*df)/psd_strainH(frequencye)+(4*df)/psd_strainL(frequencye)) , c='red', alpha=0.8, label='normalized injected signal')
+            # axins2.plot(frequencye,hi_m*np.sqrt((4*df)/psd_strainH(frequencye)+(4*df)/psd_strainL(frequencye)),c='blue',alpha=0.8, label='normalized best-fit comb')
+            # axins2.set_xticks(np.linspace(axins_xmin2,axins_xmax2,6))
+            # axins2.tick_params(labelsize =13)
+            # axins2.set_xticklabels(['%.1f'%x for x in np.linspace(axins_xmin2,axins_xmax2,6)],fontsize=12)
+            # axins2.axis([axins_xmin2, axins_xmax2, 0, axins_ymax2])
+            # ## All the way to set settings in axins are the same as ax1
 
             ax2=fig.add_subplot(2,1,2)
             ax2.plot(frequency, np.abs(strainfreN)*np.sqrt(psd_strain(frequency)*(4*df)), c='orange', label='normalized abs(dH/sH+dL/sL)')
@@ -197,6 +209,8 @@ for duration in [1,2,3,4,8,12,24,52]:
             ax2.set_title('Global maximum, comb SNR = {0:.2f}'.format(ρoptcomb_g),fontsize=15)
 
             axins2 = ax2.inset_axes((0.05, 0.7, 0.2, 0.25))
+            #axins1.plot(frequency, np.abs(strainfreN)*np.sqrt(psd_strainLH_list*(4*df)), c='orange', label='normalized abs(dH/sH+dL/sL)')
+            #axins1.plot(frequency, np.abs(noisefreN)*np.sqrt(psd_strainLH_list*(4*df)), c='aquamarine',alpha=0.98,label='normalized noise data')
             axins2.plot(frequencye,np.abs(hi)*np.sqrt((4*df)/psd_strain(frequencye)) , c='red', alpha=0.8, label='normalized injected signal')
             axins2.plot(frequencye,np.abs(hi_g)*np.sqrt((4*df)/psd_strain(frequencye)),c='blue',alpha=0.8, label='normalized best-fit comb')
             axins2.set_xticks(np.linspace(axins_xmin1,axins_xmax1,6))
@@ -204,11 +218,20 @@ for duration in [1,2,3,4,8,12,24,52]:
             axins2.set_xticklabels(['%.1f'%x for x in np.linspace(axins_xmin1,axins_xmax1,6)],fontsize=12)
             axins2.axis([axins_xmin1, axins_xmax1, 0, axins_ymax1])
 
+            # axins2 = ax2.inset_axes((0.45, 0.7, 0.2, 0.25))
+            # #axins2.plot(frequency, np.abs(strainfreN)*np.sqrt(psd_strainLH_list*(4*df)), c='orange', label='normalized abs(dH/sH+dL/sL)')
+            # #axins2.plot(frequency, np.abs(noisefreN)*np.sqrt(psd_strainLH_list*(4*df)), c='aquamarine',alpha=0.98,label='normalized noise data')
+            # axins2.plot(frequencye,hi*np.sqrt((4*df)/psd_strainH(frequencye)+(4*df)/psd_strainL(frequencye)) , c='red', alpha=0.8, label='normalized injected signal')
+            # axins2.plot(frequencye,hi_g*np.sqrt((4*df)/psd_strainH(frequencye)+(4*df)/psd_strainL(frequencye)),c='blue',alpha=0.8, label='normalized best-fit comb')
+            # axins2.set_xticks(np.linspace(axins_xmin2,axins_xmax2,6))
+            # axins2.tick_params(labelsize =13)
+            # axins2.set_xticklabels(['%.1f'%x for x in np.linspace(axins_xmin2,axins_xmax2,6)],fontsize=12)
+            # axins2.axis([axins_xmin2, axins_xmax2, 0, axins_ymax2])
             plt.savefig(outdir+'/'+label+''+'_bestfit_comb.png')
             plt.close()
             
-            # The following lines are used to save the data into the csv file.
             rows = [i, logb, maxloglikelihood,rho_opt_signal,ρoptcomb_m,ρoptcomb_g, result.sampling_time,duration]
+                
             for key in result.search_parameter_keys:
                 rows = np.append(rows,[posterior_params_m[key],posterior_params_p[key],posterior_params_n[key],posterior_params_g[key]])
             for key in result.fixed_parameter_keys:
