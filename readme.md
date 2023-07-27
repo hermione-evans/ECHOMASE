@@ -20,13 +20,13 @@ We encourage use of these data in derivative works. If you use the material prov
 ## Repository Structure
 The repository is organized to mirror the structure of our paper:
 
-1. `./comparison_likelihood&SNR_newlikelihood_dependence`: Contains the code and data necessary to reproduce Figures 1 and 2 from Section 3.2, and Figure 16 from Appendix C of the paper.
+1. `./comparison_likelihood&SNR_newlikelihood_dependence`: This directory contains the code and data used to make a simple comparison of the two phase-marginalized likelihoods in Sec. 3.2 (Figures 1 and 2), and to plot the new likelihood dependence of the echo SNR in Appendix C (Figure 16).
 
-1. `./uniew_injection`: Contains the notebook required to reproduce Figures 3, 4, 5, 6 from Section 3.3 and Figure 17 (Top) from Appendix C. Please note that it doesn't include the posterior files for reproducing the middle and bottom parts of Figures 5 and 6.
+1. `./uniew_injection`: This directory contains the notebook that showcases the Bayesian search results for the UniEw injections in different realizations of Gaussian noise. Specifically, it can be used to reproduce Figures 3, 4, 5, 6 in Section 3.3 and Figure 17 (Top) in Appendix D. Note that the posterior files for reproducing the middle and bottom parts of Figures 4 and 5 are not included.
 
-1. `./echo_wave_injection`: This directory has the code for reproducing Figures 9, 10, 11, 12, 13 from Section 4.2, Figure 17 (Bottom) from Appendix C, Table 3, 4 and Figure 18 from Appendix D. It also includes the compressed posterior files needed to reproduce all the results.
+1. `./echo_wave_injection`: This directory contains the notebook that showcases the Bayesian search results for injections of the four benchmarks for echo waveforms. Specifically, it can be used to reproduce Figures 9, 10, 11, 12, 13 in Section 4.2, Figure 17 (Bottom) in Appendix C, Table 3, 4 and Figure 18 from Appendix D. It also includes the compressed posterior files needed to reproduce all the results.
 
-1. `./superposition_QNMS`: Contains the data and code to reproduce Figures 14 and 15 from Appendix B.
+1. `./superposition_QNMS`: This directory contains the data and code to reproduce Figures 14 and 15 in Appendix B that examine the influence of QNMs interference.
 
 We invite you to explore these directories and make use of the resources within them to better understand our research and methods.
 
