@@ -132,6 +132,9 @@ for i in np.arange(start,end):
     priors=PriorDict(conversion_function=frange)
     priors['width']=bilby.core.prior.LogUniform(1/duration, R_bar, 'fw')
     priors['amplitude']=bilby.core.prior.Uniform(np.mean(np.abs(noisefre))/100, np.mean(np.abs(noisefre))*10, 'amplitude')
+    # In our paper, we use the notation \(\langle \tilde{P} \rangle\) to represent `np.mean(psd_strain(frequency))`, although in the code we actually employ `np.mean(np.abs(noisefre))`. 
+    # These two expressions are numerically similar, with `np.mean(np.abs(noisefre))` being approximately 1.2 times the value of `np.mean(psd_strain(frequency))`."
+
     priors['phase']=bilby.core.prior.Uniform(0, 1, 'phase')
     priors['spacing']=bilby.core.prior.Uniform(R_bar/4, R_bar, 'spacing')
     priors['z'] = bilby.core.prior.Constraint(minimum=0, maximum=f_RD)
