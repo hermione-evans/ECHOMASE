@@ -8,7 +8,7 @@
 Canada</sup><br />
 <sup>5 Perimeter Institute of Theoretical Physics, 31 Caroline St. N., Waterloo, ON, N2L 2Y5, Canada</sup><br />
 
-This repository is a supplement to our paper, [Wu et al., arXiv:2308.01017](https://arxiv.org/abs/2308.01017). It includes the code used to generate all the data presented in the paper, along with the best-fit value results, which you can use to reproduce some of our results. Due to size constraints, we're not able to provide the full posterior files. However, we do present our compressed posterior using the mini-K-means method, which is located in `./echo_wave_injection`.
+This repository is a supplement to our paper, [Wu et al., arXiv:2308.01017](https://arxiv.org/abs/2308.01017). The link of published version is https://journals.aps.org/prd/abstract/10.1103/PhysRevD.108.124006. It includes the code used to generate all the data presented in the paper, along with the best-fit value results, which you can use to reproduce some of our results. Due to size constraints, we're not able to provide the full posterior files. However, we do present our compressed posterior using the mini-K-means method, which is located in `./echo_wave_injection`.
 
 ## Repository Structure
 The repository is organized to mirror the structure of our paper:
@@ -33,11 +33,15 @@ We encourage the use of these data in derivative works. If you make use of the m
 ```
 @article{Wu:2023wfv,
     author = "Wu, Di and Gao, Pengyuan and Ren, Jing and Afshordi, Niayesh",
-    title = "{Model-agnostic search for the quasinormal modes of gravitational wave echoes}",
+    title = "{Model-independent search for the quasinormal modes of gravitational wave echoes}",
     eprint = "2308.01017",
     archivePrefix = "arXiv",
     primaryClass = "gr-qc",
-    month = "8",
+    doi = "10.1103/PhysRevD.108.124006",
+    journal = "Phys. Rev. D",
+    volume = "108",
+    number = "12",
+    pages = "124006",
     year = "2023"
 }
 ```
