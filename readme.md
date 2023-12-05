@@ -1,4 +1,4 @@
-# Model-agnostic search for the quasinormal modes of gravitational wave echoes
+# Model-independent search for the quasinormal modes of gravitational wave echoes
 **Di Wu <sup>1,2</sup> Pengyuan Gao <sup>1</sup>, Jing Ren <sup>1</sup>, Niayesh Afshordi <sup>3,4,5</sup>**
 
 <sup>1 Institute of High Energy Physics, Chinese Academy of Sciences, Beijing 100049, China</sup><br />
